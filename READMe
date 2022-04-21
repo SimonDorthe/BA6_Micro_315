@@ -1,13 +1,1 @@
-Micro_315 : MiniProjet : 
-
-Généralités et définition du projet : 
-Dans le cadre de notre 6ème semestre de bachelor de microtechnique de l’EPFL nous suivons le cours Micro_315 « systèmes embarqués et Robotique » pour lequel nous réalisons un projet de programmation pour un robot e-puck 2. 
-La donnée de ce projet est relativement libre et l’application que nous pouvons réalisé est à notre choix. Cependant les règles et principes suivants sont à respecter : 
-•	Le projet doit être fait sur la base de la librairie e-puck2_main-processor vue lors des TPs 4-5
-•	Vous devez obligatoirement utiliser les éléments suivants du robot e-puck2 dans votre projet :
-o	Les deux moteurs pas-à-pas. Par exemple Régulation PID, odométrie précise, forme géométrique, etc.
-o	Un des capteurs de distance (Capteurs de proximités infrarouges ou capteur Time-of-Flight). Par exemple détection d’obstacle petite ou grande distance.
-o	Un capteur parmi ceux que vous avez investigués pendant les TPs 3-5, donc un capteur parmi : la caméra, les micros, l’IMU. Par exemple avec la caméra : détection d’objet, suivi de lignes. Par exemple avec les micros : détection de sons sur la base de l’amplitude et/ou fréquence. Par exemple avec l’accéléromètre, détection d’un plan incliné, d’un choc. Par exemple avec le gyroscope, détection du mouvement d’un plan incliné.
-o	Chaque capteurs/actuateurs doit être géré par un Thread dédié dans le code.
-o	Le code doit être rendu sous la forme d’une librairie (avec divers .c/.h) qui s’intègre avec la librairie ChibiOS que vous avez utilisée lors des Travaux pratiques.
 
