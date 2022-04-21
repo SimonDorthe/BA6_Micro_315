@@ -22,6 +22,8 @@ void SendUint8ToComputer(uint8_t* data, uint16_t size)
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
 }
 
+//TESTGIT
+
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
