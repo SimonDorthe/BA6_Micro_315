@@ -57,7 +57,7 @@ int main(void)
     dcmi_start();
 	po8030_start();
 	//starts timer 12
-    timer12_start();
+    //timer12_start();
 	//inits the motors
 	motors_init();
 
