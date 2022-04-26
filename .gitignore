@@ -1,6 +1,7 @@
 # relou 
 build
 .DS_Store
+*.project
 
 # Prerequisites
 *.d
