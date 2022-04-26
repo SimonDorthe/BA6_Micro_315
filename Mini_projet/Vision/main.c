@@ -11,17 +11,9 @@
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
-#include <audio/microphone.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
-#include <audio_processing.h>
-#include <fft.h>
-#include <communications.h>
-#include <arm_math.h>
-
-//uncomment to use double buffering to send the FFT to the computer
-#define DOUBLE_BUFFERING
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
@@ -56,8 +48,6 @@ int main(void)
     //starts the camera
     dcmi_start();
 	po8030_start();
-	//starts timer 12
-    //timer12_start();
 	//inits the motors
 	motors_init();
 

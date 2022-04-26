@@ -67,8 +67,10 @@ static THD_FUNCTION(PiRegulator, arg) {
         }
 
         //applies the speed from the PI regulator and the correction for the rotation
-		right_motor_set_speed(speed - ROTATION_COEFF * speed_correction);
-		left_motor_set_speed(speed + ROTATION_COEFF * speed_correction);
+		right_motor_set_speed(0);
+		left_motor_set_speed(0);
+		//right_motor_set_speed(speed - ROTATION_COEFF * speed_correction);
+		//left_motor_set_speed(speed + ROTATION_COEFF * speed_correction);
 
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
