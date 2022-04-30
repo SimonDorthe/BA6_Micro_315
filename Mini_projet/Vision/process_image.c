@@ -131,6 +131,8 @@ static THD_FUNCTION(ProcessImage, arg) {
 	uint8_t *img_buff_ptr;
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 	uint16_t lineWidth = 0;
+	uint8_t byte_RG = 0;
+	uint8_t byte_GB = 0;
 
 	bool send_to_computer = true;
 
@@ -144,7 +146,19 @@ static THD_FUNCTION(ProcessImage, arg) {
 		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
 			//extracts first 5bits of the first byte
 			//takes nothing from the second byte
-			image[i/2] = (uint8_t)img_buff_ptr[i]&0xF8;
+
+// detecting green pixels
+			byte_RG = (uint8_t)img_buff_ptr[i]&0x07;
+			byte_RG = (byte_RG << 5)&0xE0;
+			byte_GB = (uint8_t)img_buff_ptr[i+1]&0xE0;
+			byte_GB = (byte_GB >> 3)&0x1C;
+			image[i/2] = (byte_RG | byte_GB)&0xFC;
+
+			//image[i/2] = (uint8_t)img_buff_ptr[i]&0xF8; //detecting red pixels, 0xF8 = 11111000
+
+			  //image[i/2] = ((uint8_t)img_buff_ptr[i+1]&0x1F << 3); //detecting blue pixels, 0x1F = 0b00011111, shifted by 3 bits : 0b1111100
+
+			//chprintf((BaseSequentialStream *) &SD3, "b1 = %x , b2 = %x , b3 = %x \n", byte_RG, byte_GB, image[i/2]);
 		}
 
 		//search for a line in the image and gets its width in pixels
