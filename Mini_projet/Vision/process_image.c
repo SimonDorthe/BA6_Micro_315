@@ -13,6 +13,7 @@ enum colours {NONE, RED, GREEN, BLUE};
 #define GREEN_THRESHOLD 	100 //à adapter
 #define RED_THRESHOLD 		100 //à adapter
 #define BLUE_THRESHOLD 		100 //à adapter
+#define DELTA_PIXELS		10 //à adapter --> remplacerait les thresholds
 
 static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
@@ -213,23 +214,24 @@ void extract_blue_pixels(uint8_t image[IMAGE_BUFFER_SIZE]){
 
 bool compare_colour(uint8_t colour_chosen){
 
+	uint16_t old_line_position = get_line_position();
 	switch(colour_chosen)
 	{
 		case RED:
 			extract_green_pixels;
-			if (mean < RED_THRESHOLD){ // remplacer par la fonction getline
+			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
 				return true;
 			} else return false;
 			break;
 
 		case GREEN:
 			extract_blue_pixels;
-			if (mean < GREEN_THRESHOLD){ // remplacer par la fonction getline
+			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
 				return true;
 			} else return false;
 			break;
 		case BLUE:
-			if (mean < BLUE_THRESHOLD){ // remplacer par la fonction getline
+			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
 				return true;
 			} else return false;
 			break;
