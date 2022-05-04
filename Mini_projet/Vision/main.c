@@ -11,9 +11,13 @@
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
+#include <gpio.h>
+#include <selector.h>
+#include <timer.h>
 
-#include <pi_regulator.h>
-#include <process_image.h>
+//#include <pi_regulator.h>
+//#include <process_image.h>
+#include <"adventure.h">
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
@@ -45,15 +49,31 @@ int main(void)
     serial_start();
     //start the USB communication
     usb_start();
+    // Enable GPIOB and GPIOD peripheral clock for the LEDs
+	RCC->AHB1ENR    |= RCC_AHB1ENR_GPIOBEN | RCC_AHB1ENR_GPIODEN;
+
+	// BODY_LED init
+	gpio_set(BODY_LED);
+	gpio_config_output_pushpull(BODY_LED);
+
+
     //starts the camera
     dcmi_start();
 	po8030_start();
 	//inits the motors
 	motors_init();
 
+	init_selector();
+
+	//inserer ici code pour controler que toutes les inits se sont bien passées
+
+	//if tout c'est bien passé lancer le mode adventure
+	adventure_start();
+	// si un device ne répond pas, lancer le mode ERROR
+
 	//stars the threads for the pi regulator and the processing of the image
-	pi_regulator_start();
-	process_image_start();
+//	pi_regulator_start();
+//	process_image_start();
 
     /* Infinite loop. */
     while (1) {

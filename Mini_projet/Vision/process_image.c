@@ -5,8 +5,13 @@
 
 #include <main.h>
 #include <camera/po8030.h>
-
+#include <adventure.h>
 #include <process_image.h>
+
+#define GREEN_THRESHOLD 	100 //à adapter
+#define RED_THRESHOLD 		100 //à adapter
+#define BLUE_THRESHOLD 		100 //à adapter
+#define DELTA_PIXELS		10 //à adapter --> remplacerait les thresholds
 
 
 static float distance_cm = 0;
@@ -131,6 +136,8 @@ static THD_FUNCTION(ProcessImage, arg) {
 	uint8_t *img_buff_ptr;
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 	uint16_t lineWidth = 0;
+	uint8_t byte_RG = 0;
+	uint8_t byte_GB = 0;
 
 	bool send_to_computer = true;
 
@@ -141,10 +148,16 @@ static THD_FUNCTION(ProcessImage, arg) {
 		img_buff_ptr = dcmi_get_last_image_ptr();
 
 		//Extracts only the red pixels
-		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
-			//extracts first 5bits of the first byte
-			//takes nothing from the second byte
-			image[i/2] = (uint8_t)img_buff_ptr[i]&0xF8;
+		switch(get_colorToFollow()){
+			case GREEN:
+			case BLUE:
+				extract_red_pixels();
+				break;
+			case RED:
+				eextract_blue_pixels();
+				break;
+			default:
+				break;
 		}
 
 		//search for a line in the image and gets its width in pixels
@@ -164,12 +177,68 @@ static THD_FUNCTION(ProcessImage, arg) {
     }
 }
 
+void extract_red_pixels(void){
+
+	//Extracts only the red pixels
+	for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
+		image[i/2] = (uint8_t)img_buff_ptr[i]&0xF8; //0xF8 = 0b11111000
+	}
+}
+
+void extract_green_pixels(void){
+
+	//Extracts only the green pixels
+	for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
+		byte_RG = (uint8_t)img_buff_ptr[i]&0x07;
+		byte_RG = (byte_RG << 5)&0xE0;
+		byte_GB = (uint8_t)img_buff_ptr[i+1]&0xE0;
+		byte_GB = (byte_GB >> 3)&0x1C;
+		image[i/2] = (byte_RG | byte_GB)&0xFC;
+	}
+}
+
+void extract_blue_pixels(void){
+
+	//Extracts only the blue pixels
+	for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
+		image[i/2] = ((uint8_t)img_buff_ptr[i+1]&0x1F) << 3; //0x1F = 0b00011111, shifted by 3 bits : 0b1111100
+	}
+}
+
+bool compare_color_viewed(void){
+
+	uint16_t old_line_position = get_line_position();
+	switch(get_colorToFollow())
+	{
+		case RED:
+			extract_green_pixels;
+			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
+				return true;
+			} else return false;
+			break;
+
+		case GREEN:
+			extract_blue_pixels;
+			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
+				return true;
+			} else return false;
+			break;
+		case BLUE:
+			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
+				return true;
+			} else return false;
+			break;
+		default :
+			return false;
+	};
+}
+
 float get_distance_cm(void){
 	return distance_cm;
 }
 
 uint16_t get_line_position(void){
-	return line_position;
+	return line_position ;
 }
 
 void process_image_start(void){
