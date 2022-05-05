@@ -239,6 +239,10 @@ uint16_t get_line_position(void){
 	return line_position ;
 }
 
+uint16_t get_line_width(void){
+	return lineWidth ;
+}
+
 void process_image_start(void){
 	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
 	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);

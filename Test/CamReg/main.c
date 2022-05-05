@@ -11,9 +11,7 @@
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
-#include <gpio.h>
-#include <selector.h>
-#include <timer.h>
+#include "selector.h"
 #include <adventure.h>
 #include <process_image.h>
 
@@ -53,6 +51,8 @@ int main(void)
 	//inits the motors
 	motors_init();
 
+
+	adventure_start();
 	//stars the threads for the pi regulator and the processing of the image
 	//pi_regulator_start();
 	process_image_start();

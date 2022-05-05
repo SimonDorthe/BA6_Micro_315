@@ -8,8 +8,10 @@
 
 float get_distance_cm(void);
 uint16_t get_line_position(void);
+uint16_t get_line_width(void);
 bool compare_color_viewed(void);
 void process_image_start(void);
+
 
 
 #endif /* PROCESS_IMAGE_H */

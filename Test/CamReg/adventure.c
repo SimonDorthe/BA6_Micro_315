@@ -6,16 +6,14 @@
  */
 #include "ch.h"
 #include "hal.h"
+#include "motors.h"
 #include <math.h>
 #include <usbcfg.h>
 #include <chprintf.h>
 
 #include "adventure.h"
 #include <main.h>
-#include <gpio.h>
 #include <selector.h>
-#include <timer.h>
-#include <motors.h>
 #include <process_image.h>
 
 
@@ -23,6 +21,8 @@
 static uint8_t colorToFollow = NO_COLOR;  //Couleur du chemin que le robot doit suivre
 static uint8_t actualState = ERREUR;
 static uint8_t sequence_pos = 0;
+static uint32_t left_motor_act_position = 2000;
+static uint32_t right_motor_act_position = 2000;
 static const uint8_t seq[8][4] = {
     {0, 0, 0, 1},	// ON1
 	{0, 0, 1, 1},	// ON3
@@ -81,33 +81,25 @@ void actualize_state(void){
 
 			if(compare_color_viewed()){//si la couleur vue est effectivement la bonne
 				newState = BON_CHEMIN_TROUVE;
-				motor_stop();
+
+				right_motor_set_speed(0);
+				left_motor_set_speed(0);
 			}else{
 				newState = MAUVAIS_CHEMIN_TROUVE;
-	    		right_motor_set_speed(-2);
-    			left_motor_set_speed(2);
+	    		right_motor_set_speed(-200);
+    			left_motor_set_speed(200);
 			}
 
 			break;
 		case BON_CHEMIN_TROUVE:
 			newState = SUIVRE_CHEMIN;
         	sequence_pos = 0;
-        	/*
-			gpio_set(LED1);
-			gpio_set(LED3);
-			gpio_set(LED5);
-			gpio_set(LED7);
-			*/
+//insert led sequence
 			break;
 		case MAUVAIS_CHEMIN_TROUVE:
 			newState = RECHERCHE_COULEUR;//continuer à chercher le bon chemin
         	sequence_pos = 0;
-        	/*
-			gpio_set(LED1);
-			gpio_set(LED3);
-			gpio_set(LED5);
-			gpio_set(LED7);
-			*/
+// insert led sequence
 			break;
 		case SUIVRE_CHEMIN:
 			//si la ligne est toujours la : rester dans le chemin
@@ -187,25 +179,30 @@ static THD_FUNCTION(Adventure, arg) {
 			case RECHERCHE_COULEUR:
 				//mise en route des moteur pour tourner dans un sens
 				//clockwise rotation of 360Â°
-				motor_set_position(PERIMETER_EPUCK*1.5f, PERIMETER_EPUCK*1.5f, -2, 2);
+				left_motor_set_pos(left_motor_act_position);
+				right_motor_set_pos(right_motor_act_position);
+				left_motor_set_speed(200);
+				right_motor_set_speed(-200);
 				do{
 					// détecter si le robot voit une ligne/un chemin de couleur
 					if(get_line_position() >= (IMAGE_BUFFER_SIZE/2)-DELTA_ROTATION && get_line_position() <= (IMAGE_BUFFER_SIZE/2)+DELTA_ROTATION){
+						left_motor_act_position = left_motor_get_pos();
+						right_motor_act_position = right_motor_get_pos();
 						//Stop the 2 motors
 						right_motor_set_speed(0);
 						left_motor_set_speed(0);
-						actialize_state();
+						actualize_state();
 					}
-				}while(motor_position_reached() != POSITION_REACHED);
+				}while(left_motor_get_pos() != 2000);
 
 				// Si le robot a fait > à 360° , alors la couleur n'existe pas
 				actualState = PAS_DE_CHEMIN_TROUVE;
 				break;
 			case BON_CHEMIN_TROUVE:
 				//faire clignoter la led du corps correspondant à la couleur trouvée et allumer la led frontale en Vert
-				LEDs_update(seq[sequence_pos]);
-				sequence_pos++;
-				sequence_pos %= 8;
+				//LEDs_update(seq[sequence_pos]);
+				//sequence_pos++;
+				//sequence_pos %= 8;
 				//waits before moving to let us position the robot before it moves
 
 				chThdSleepMilliseconds(1500);
@@ -229,8 +226,8 @@ static THD_FUNCTION(Adventure, arg) {
 
 		         //applies the speed from the PI regulator and the correction for the rotation
 
-		 		right_motor_set_speed(speed - ROTATION_COEFF * speed_correction);
-		 		left_motor_set_speed(speed + ROTATION_COEFF * speed_correction);
+		 		right_motor_set_speed(200 - ROTATION_COEFF * speed_correction);
+		 		left_motor_set_speed(200 + ROTATION_COEFF * speed_correction);
 
 				break;
 			case CHEMIN_PERDU:
@@ -246,11 +243,13 @@ static THD_FUNCTION(Adventure, arg) {
 
 				break;
 			case ARRIVE:
-				motor_stop();
+				right_motor_set_speed(0);
+				left_motor_set_speed(0);
 
 				break;
 			case ERREUR:
-				motor_stop();
+				right_motor_set_speed(0);
+				left_motor_set_speed(0);
 				break;
 			default:
 			break;
