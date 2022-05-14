@@ -14,10 +14,10 @@ extern "C" {
 #define IMAGE_BUFFER_SIZE		640
 #define DELTA_ROTATION			5
 #define WIDTH_SLOPE				5
-#define MAX_LINE_WIDTH			300
+#define MAX_LINE_WIDTH			400
 #define MIN_LINE_WIDTH			40
 #define ROTATION_THRESHOLD		10
-#define ROTATION_COEFF			2 
+#define ROTATION_COEFF			1
 #define PERIMETER_EPUCK			(3.1415926536f * 5.35f)
 #define PXTOCM					1570.0f //experimental value
 #define GOAL_DISTANCE 			10.0f

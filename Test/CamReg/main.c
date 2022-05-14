@@ -14,14 +14,21 @@
 #include "selector.h"
 #include <adventure.h>
 #include <process_image.h>
+#include <sensors/proximity.h>
+#include <leds.h>
+#include "spi_comm.h"
 
-void SendUint8ToComputer(uint8_t* data, uint16_t size) 
+messagebus_t bus;
+MUTEX_DECL(bus_lock);
+CONDVAR_DECL(bus_condvar);
+
+/*void SendUint8ToComputer(uint8_t* data, uint16_t size)
 {
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
 }
-
+*/
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
@@ -50,8 +57,18 @@ int main(void)
 	po8030_start();
 	//inits the motors
 	motors_init();
+	spi_comm_start();
+	 //
+	// dac_start();
+	//init and calibration IR sensors
 
+    //init LEDs RGB
+	set_rgb_led(LED2, 0, 0, 0);
+    set_rgb_led(LED4, 0, 0, 0);
+    set_rgb_led(LED6, 0, 0, 0);
+    set_rgb_led(LED8, 0, 0, 0);
 
+    chprintf((BaseSequentialStream *) &SD3, "adventure Start\n \r");
 	adventure_start();
 	//stars the threads for the pi regulator and the processing of the image
 	//pi_regulator_start();

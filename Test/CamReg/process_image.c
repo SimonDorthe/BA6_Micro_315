@@ -158,23 +158,33 @@ void extract_blue_pixels(void){
 
 bool compare_color_viewed(void){
 
+	//waits until an image has been captured
+    chBSemWait(&image_ready_sem);
+	//gets the pointer to the array filled with the last image in RGB565
+	img_buff_ptr = dcmi_get_last_image_ptr();
+
 	uint16_t old_line_position = get_line_position();
+
 	switch(get_colorToFollow())
 	{
 		case RED:
-			extract_green_pixels;
+			extract_green_pixels();
+			lineWidth = extract_line_width(image);
+			chprintf((BaseSequentialStream *) &SD3, "get line position =%x \n\r", get_line_position());
 			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
 				return true;
 			} else return false;
 			break;
 
 		case GREEN:
-			extract_blue_pixels;
+			extract_blue_pixels();
+			lineWidth = extract_line_width(image);
 			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
 				return true;
 			} else return false;
 			break;
 		case BLUE:
+			extract_green_pixels();
 			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
 				return true;
 			} else return false;
@@ -223,7 +233,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		if(send_to_computer){
 			//sends to the computer the image
-			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
+		//	SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
 		}
 		//invert the bool
 		send_to_computer = !send_to_computer;
