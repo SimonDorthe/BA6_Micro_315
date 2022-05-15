@@ -28,7 +28,6 @@ extern "C" {
 #define MAX_SUM_ERROR 			(MOTOR_SPEED_LIMIT/KI)
 
 
-
 //constants for the motors
 #define POSITION_NOT_REACHED	0
 #define POSITION_REACHED       	1
