@@ -18,7 +18,6 @@
 #include <leds.h>
 #include "spi_comm.h"
 #include <audio/play_melody.h>
-#include <audio/audio_thread.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -36,6 +35,9 @@ static void serial_start(void)
 
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
+
+
+
 
 int main(void)
 {
@@ -70,8 +72,9 @@ int main(void)
     set_rgb_led(LED8, 0, 0, 0);
 
     chprintf((BaseSequentialStream *) &SD3, "adventure Start\n \r");//indication que l'initialisation est fini
+
     //stars the threads for the adventure mode
-	adventure_start();
+    adventure_start();
 	//stars the threads for the processing of the image
 	process_image_start();
 

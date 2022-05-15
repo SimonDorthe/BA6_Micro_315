@@ -19,11 +19,9 @@
 #include <process_image.h>
 #include <sensors/proximity.h>
 #include <leds.h>
-#include "spi_comm.h"
 #include <audio/play_melody.h>
 #include <sensors/proximity.h>
-#include <audio/audio_thread.h>
-#include <audio/play_melody.h>
+
 
 
 //déclaration de variables utiles dans plusieurs fonction du mode aventure
@@ -130,6 +128,10 @@ void actualize_state(void){
 			}// Si l'arrivée est détectée : passer à arrivé
 		   else if(get_line_width() >= MAX_LINE_WIDTH){
 				newState = ARRIVE;
+				//arrêter les moteurs
+				right_motor_set_speed(MOTOR_SPEED_STOP);
+				left_motor_set_speed(MOTOR_SPEED_STOP);
+				chThdSleepMilliseconds(1000);//attente de 1s
 				chprintf((BaseSequentialStream *) &SD3, "from SUIVRE_CSHEMIN to ARRIVE\n\r");
 			}
 			// si la ligne est perdu : passer à Chemin perdu
@@ -149,7 +151,7 @@ void actualize_state(void){
 				chprintf((BaseSequentialStream *) &SD3, "from SUIVRE_CHEMIN to ERREUR\n\r");
 			}
 
-			break;
+		break;
 	/* Mode :
 	 * CHEMIN_PERDU -> CHEMIN_PERDU : Reste dans le mode tant que le selecteur n'est pas remis à zéro
 	 * CHEMIN_PERDU -> ATTENTE_COULEUR : retourne à l'état attente_couleur une fois le système remis à zéro
@@ -196,7 +198,7 @@ void actualize_state(void){
 	 */
 		case ARRIVE:
 			//Il faut bouger le selecteur pour arrêter d'être en mode arrivé
-			if(get_selector()!=colorToFollow){
+			if(get_selector()==NO_COLOR){
 				newState = ATTENTE_COULEUR;
 				stopCurrentMelody();
 				chprintf((BaseSequentialStream *) &SD3, "from ARRIVE to ATTENTE_COULEUR\n\r");
@@ -234,8 +236,6 @@ static THD_FUNCTION(Adventure, arg) {
     (void)arg;
 
     systime_t time;
-
-    int16_t speed = 0;
     int16_t speed_correction = 0;
 
     while(1){
@@ -255,6 +255,10 @@ static THD_FUNCTION(Adventure, arg) {
 				set_rgb_led(LED4, 0, 0, 0); //extinction de la LED 4 pour indiquer qu'on ne cherche pas de chemin
 				//appel au selecteur pour savoir quelle couleur il faut chercher
 				colorToFollow = get_selector();
+
+				//s'assurer que les moteurs sont arrêtés
+				right_motor_set_speed(MOTOR_SPEED_STOP);
+				left_motor_set_speed(MOTOR_SPEED_STOP);
 				//remise à 0 des moteur et des positions
 				left_motor_act_position = MOTOR_POSITION_BASE;
 				right_motor_act_position = MOTOR_POSITION_BASE;
@@ -272,7 +276,7 @@ static THD_FUNCTION(Adventure, arg) {
 				//Gestion des LED
 				set_rgb_led(LED6, 0, 0, 0);
 				set_rgb_led(LED8, 0, 0, 0);
-				toggle_rgb_led(LED4,NUM_COLOR_LED, 255);//LED 4 s'allume en blanc pour indiquer que le Epuck cherche un chemin
+				set_rgb_led(LED4, 255, 255, 255); //LED 4 s'allume en blanc pour indiquer que le Epuck cherche un chemin
 				if(colorToFollow == RED){ //allumage de la lED 2 (LED "couleur à suivre") de la couleur du chemin voulu
 					set_rgb_led(LED2, 255, 0, 0);
 
@@ -330,8 +334,8 @@ static THD_FUNCTION(Adventure, arg) {
 				//Remise de la position des moteurs avant l'arrêt
 				left_motor_set_pos(left_motor_act_position);
 				right_motor_set_pos(right_motor_act_position);
-				right_motor_set_speed(MOTOR_SPEED_BACKWARD);
-				left_motor_set_speed(MOTOR_SPEED_FORWARD);
+		//		right_motor_set_speed(MOTOR_SPEED_BACKWARD);
+		//		left_motor_set_speed(MOTOR_SPEED_FORWARD);
 				chThdSleepMilliseconds(1000);//attente pendant 1 secondes pour rentre le changement visuel pour l'utilisateur
 				break;
 		/* Mode : SUIVRE_CHEMIN
@@ -401,11 +405,14 @@ static THD_FUNCTION(Adventure, arg) {
 			case ARRIVE:
 				chprintf((BaseSequentialStream *) &SD3, "ARRIVE\n\r"); //Affichage de l'entrée dans le mode
 				set_rgb_led(LED6, 0, 0, 255); //Activation de la LED6 en bleu pour signaler que le epuck est arrivé à la fin
-				//Arrêt des moteurs
-				right_motor_set_speed(MOTOR_SPEED_STOP);
-				left_motor_set_speed(MOTOR_SPEED_STOP);
+
 				//jouer une mélodie de victoire (à commenter après 22h, c'est pas cool pour les colocs)
 				playMelody(SANDSTORMS, ML_SIMPLE_PLAY, NULL);
+
+				//fait tourner le robot sur lui-même pour signaler l'arrivée
+				right_motor_set_speed(MOTOR_SPEED_FORWARD*2);
+				left_motor_set_speed(MOTOR_SPEED_BACKWARD*2);
+
 
 				break;
 		/* Mode : ERREUR
@@ -430,7 +437,7 @@ static THD_FUNCTION(Adventure, arg) {
          }
          actualize_state(); //actualise l'état à la fin de du traitement de celui-ci
          //50Hz
-         chThdSleepUntilWindowed(time, time + MS2ST(20));
+         chThdSleepUntilWindowed(time, time + MS2ST(100));
      }
 }
 

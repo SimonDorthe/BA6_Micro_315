@@ -1,3 +1,13 @@
+/*
+ * process_image.c
+ *
+ *  Based on an importation of EPFL MICRO-315 TP4
+ *
+ *      Modified by . Simon Dorthe & Julien Dibiaggio
+ *
+ *
+ */
+
 #include "ch.h"
 #include "hal.h"
 #include <chprintf.h>
@@ -11,12 +21,10 @@
 
 
 
-static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
 static uint8_t *img_buff_ptr;
 static uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 static uint16_t lineWidth = 0;
-static bool line_exist = 0;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -29,7 +37,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 
 	uint16_t i = 0, begin = 0, end = 0, width = 0;
 	uint8_t stop = 0, wrong_line = 0, line_not_found = 0;
-	uint32_t mean = 0; uint32_t local_mean = 0;
+	uint32_t mean = 0;
 
 	static uint16_t last_width = PXTOCM/GOAL_DISTANCE;
 
@@ -92,20 +100,9 @@ uint16_t extract_line_width(uint8_t *buffer){
 		begin = 0;
 		end = 0;
 		width = last_width;
-		line_exist = 0;
 	}else{
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
-		//performs an average
-		for(uint16_t i = (line_position-(DELTA_PIXELS/2)) ; i < (line_position+(DELTA_PIXELS/2)) ; i++){
-			local_mean += buffer[i];
-		}
-		local_mean /= IMAGE_BUFFER_SIZE;
-		if(local_mean < mean){
-			line_exist = 1 ;
-		}else{
-			line_exist = 0;
-		}
 	}
 
 
@@ -140,6 +137,8 @@ static THD_FUNCTION(CaptureImage, arg) {
 		chBSemSignal(&image_ready_sem);
     }
 }
+
+//cette fonction permet d'appliquer un filttre ne montrant que les pixels rouges d'une image
 void extract_red_pixels(void){
 
 	//Extracts only the red pixels
@@ -147,7 +146,7 @@ void extract_red_pixels(void){
 		image[i/2] = (uint8_t)img_buff_ptr[i]&0xF8; //0xF8 = 0b11111000
 	}
 }
-
+//cette fonction permet d'appliquer un filttre ne montrant que les pixels verts d'une image
 void extract_green_pixels(void){
 
 	uint8_t byte_RG = 0;
@@ -156,12 +155,12 @@ void extract_green_pixels(void){
 	for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
 		byte_RG = (uint8_t)img_buff_ptr[i]&0x07;
 		byte_RG = (byte_RG << 5)&0xE0;
-		byte_GB = (uint8_t)img_buff_ptr[i+1]&0xE0;
+		byte_GB = (uint8_t)img_buff_ptr[i+1]&0xC0;
 		byte_GB = (byte_GB >> 3)&0x1C;
 		image[i/2] = (byte_RG | byte_GB)&0xFC;
 	}
 }
-
+//cette fonction permet d'appliquer un filttre ne montrant que les pixels bleus d'une image
 void extract_blue_pixels(void){
 
 	//Extracts only the blue pixels
@@ -170,16 +169,17 @@ void extract_blue_pixels(void){
 	}
 }
 
-
+//cette fonction compare si la couleur vue par la caméra du robot à un moment précis correspont à la couleur que le robot doit détecter
+// si oui -> retour true si ce n'est pas le cas : retourne false
 bool compare_color_viewed(void){
-
+	//stockage de la position de la ligne avec l'ancien filtre
+	uint16_t old_line_position = get_line_position();
 	//waits until an image has been captured
     chBSemWait(&image_ready_sem);
 	//gets the pointer to the array filled with the last image in RGB565
 	img_buff_ptr = dcmi_get_last_image_ptr();
 
-	uint16_t old_line_position = get_line_position();
-
+	//applique le nouveau filtre à l'image en fonction de la couleur voulue
 	switch(get_colorToFollow())
 	{
 		case RED:
@@ -194,9 +194,10 @@ bool compare_color_viewed(void){
 		default :
 			return false;
 	}
+	//traitement d'image
 	lineWidth = extract_line_width(image);
-	chprintf((BaseSequentialStream *) &SD3, "get line position =%x \n\r", get_line_position());
-	if (line_exist){ // if line still existing after changing color filter
+	//chprintf((BaseSequentialStream *) &SD3, "get line position =%x \n\r", get_line_position()); //utile pour le débug
+	if (get_line_position()>(old_line_position-5)&&get_line_position()<(old_line_position+5)){ // if line still existing after changing color filter
 		return true;
 	} else return false;
 }
@@ -208,8 +209,6 @@ static THD_FUNCTION(ProcessImage, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-
-	bool send_to_computer = true;
 
     while(1){
     	//waits until an image has been captured
@@ -232,36 +231,16 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		//search for a line in the image and gets its width in pixels
 		lineWidth = extract_line_width(image);
-
-		//converts the width into a distance between the robot and the camera
-		if(lineWidth){
-			distance_cm = PXTOCM/lineWidth;
-		}
-
-		if(send_to_computer){
-			//sends to the computer the image
-		//	SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
-		}
-		//invert the bool
-		send_to_computer = !send_to_computer;
     }
 }
 
-
-float get_distance_cm(void){
-	return distance_cm;
-}
-
+// retourne la position de la ligne
 uint16_t get_line_position(void){
 	return line_position ;
 }
-
+// retourne la largeur de la ligne
 uint16_t get_line_width(void){
 	return lineWidth ;
-}
-
-bool get_line_exist(void){
-	return line_exist;
 }
 
 void process_image_start(void){
