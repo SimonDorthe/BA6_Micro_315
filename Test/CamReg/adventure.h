@@ -32,9 +32,10 @@ enum Color {
 #define POSITION_NOT_REACHED	0
 #define POSITION_REACHED       	1
 #define MOTOR_POSITION_BASE		0
-#define MOTOR_SPEED_FORWARD		100
+#define MOTOR_SPEED_FORWARD		150
 #define MOTOR_SPEED_BACKWARD	-100
 #define MOTOR_SPEED_STOP		0
+#define DISTANCE 				50
 
 int16_t pi_regulator(float distance, float goal);
 void actualize_state(void);

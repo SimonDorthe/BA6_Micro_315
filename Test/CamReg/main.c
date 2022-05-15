@@ -17,6 +17,8 @@
 #include <sensors/proximity.h>
 #include <leds.h>
 #include "spi_comm.h"
+#include <audio/play_melody.h>
+#include <audio/audio_thread.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -47,6 +49,7 @@ int main(void)
     halInit();
     chSysInit();
     mpu_init();
+    messagebus_init(&bus, &bus_lock, &bus_condvar);
 
     //starts the serial communication
     serial_start();
@@ -58,9 +61,12 @@ int main(void)
 	//inits the motors
 	motors_init();
 	spi_comm_start();
-	 //
-	// dac_start();
 	//init and calibration IR sensors
+	proximity_start();
+	calibrate_ir();
+	 //init the molody thread
+	 dac_start();
+	 playMelodyStart();
 
     //init LEDs RGB
 	set_rgb_led(LED2, 0, 0, 0);

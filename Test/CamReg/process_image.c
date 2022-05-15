@@ -16,6 +16,7 @@ static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
 static uint8_t *img_buff_ptr;
 static uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 static uint16_t lineWidth = 0;
+static bool line_exist = 0;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -28,7 +29,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 
 	uint16_t i = 0, begin = 0, end = 0, width = 0;
 	uint8_t stop = 0, wrong_line = 0, line_not_found = 0;
-	uint32_t mean = 0;
+	uint32_t mean = 0; uint32_t local_mean = 0;
 
 	static uint16_t last_width = PXTOCM/GOAL_DISTANCE;
 
@@ -91,10 +92,23 @@ uint16_t extract_line_width(uint8_t *buffer){
 		begin = 0;
 		end = 0;
 		width = last_width;
+		line_exist = 0;
 	}else{
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
+		//performs an average
+		for(uint16_t i = (line_position-(DELTA_PIXELS/2)) ; i < (line_position+(DELTA_PIXELS/2)) ; i++){
+			local_mean += buffer[i];
+		}
+		local_mean /= IMAGE_BUFFER_SIZE;
+		if(local_mean < mean){
+			line_exist = 1 ;
+		}else{
+			line_exist = 0;
+		}
 	}
+
+
 
 	//sets a maximum width or returns the measured width
 	if((PXTOCM/width) > MAX_DISTANCE){
@@ -156,6 +170,7 @@ void extract_blue_pixels(void){
 	}
 }
 
+
 bool compare_color_viewed(void){
 
 	//waits until an image has been captured
@@ -169,29 +184,21 @@ bool compare_color_viewed(void){
 	{
 		case RED:
 			extract_green_pixels();
-			lineWidth = extract_line_width(image);
-			chprintf((BaseSequentialStream *) &SD3, "get line position =%x \n\r", get_line_position());
-			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
-				return true;
-			} else return false;
 			break;
-
 		case GREEN:
 			extract_blue_pixels();
-			lineWidth = extract_line_width(image);
-			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
-				return true;
-			} else return false;
 			break;
 		case BLUE:
 			extract_green_pixels();
-			if (get_line_position() > old_line_position - DELTA_PIXELS && get_line_position() < old_line_position + DELTA_PIXELS){ // remplacer par la fonction getline
-				return true;
-			} else return false;
 			break;
 		default :
 			return false;
-	};
+	}
+	lineWidth = extract_line_width(image);
+	chprintf((BaseSequentialStream *) &SD3, "get line position =%x \n\r", get_line_position());
+	if (line_exist){ // if line still existing after changing color filter
+		return true;
+	} else return false;
 }
 
 
@@ -251,6 +258,10 @@ uint16_t get_line_position(void){
 
 uint16_t get_line_width(void){
 	return lineWidth ;
+}
+
+bool get_line_exist(void){
+	return line_exist;
 }
 
 void process_image_start(void){

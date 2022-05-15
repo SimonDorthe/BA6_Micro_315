@@ -18,6 +18,10 @@
 #include <sensors/proximity.h>
 #include <leds.h>
 #include "spi_comm.h"
+#include <audio/play_melody.h>
+#include <sensors/proximity.h>
+#include <audio/audio_thread.h>
+#include <audio/play_melody.h>
 
 
 
@@ -26,47 +30,14 @@ static uint8_t actualState = ERREUR;
 static uint8_t sequence_pos = 0;
 static uint32_t left_motor_act_position = MOTOR_POSITION_BASE;
 static uint32_t right_motor_act_position = MOTOR_POSITION_BASE;
-static const uint8_t seq[8][4] = {
-    {0, 0, 0, 1},	// ON1
-	{0, 0, 1, 1},	// ON3
-    {0, 1, 1, 1},	// ON5
-	{1, 1, 1, 1},	// ON7
-    {1, 1, 1, 0},	// OFF1
-	{1, 1, 0, 0},	// OFF3
-    {1, 0, 0, 0},	// OFF5
-	{0, 0, 0, 0},	// OFF7
-};
 
-//simple PI regulator implementation
-int16_t pi_regulator(float distance, float goal){
-
-	float error = 0;
-	float speed = 0;
-
-	static float sum_error = 0;
-
-	error = distance - goal;
-
-	//disables the PI regulator if the error is to small
-	//this avoids to always move as we cannot exactly be where we want and
-	//the camera is a bit noisy
-	if(fabs(error) < ERROR_THRESHOLD){
-		return 0;
-	}
-
-	sum_error += error;
-
-	//we set a maximum and a minimum for the sum to avoid an uncontrolled growth
-	if(sum_error > MAX_SUM_ERROR){
-		sum_error = MAX_SUM_ERROR;
-	}else if(sum_error < -MAX_SUM_ERROR){
-		sum_error = -MAX_SUM_ERROR;
-	}
-
-	speed = KP * error + KI * sum_error;
-
-    return (int16_t)speed;
-}
+/*--------actualisation de l'état de l'aventure----------------------
+ *
+ * Cette fonction à pour but de gérer les transitions d'états de la FSM gérant le mode aventure.
+ * Elle est systématiquement appelée à la fin d'un tour de thread adventure afin que l'état soit changé si nécessaire
+ * au prochain appel du thread.
+ *
+ */
 
 void actualize_state(void){
 
@@ -149,8 +120,12 @@ void actualize_state(void){
 		case SUIVRE_CHEMIN:
 			chprintf((BaseSequentialStream *) &SD3, "line position = %x \n\r", get_line_position() );
 			chprintf((BaseSequentialStream *) &SD3, "line width = %x \n\r", get_line_width() );
-			// Si l'arrivée est détectée : passer à arrivé
-			if(get_line_width() >= MAX_LINE_WIDTH){
+			// Si un obstacle est détecté par les capteurs de proximité IR : passer en mode obstacle
+		   if(get_prox(4)> DISTANCE || get_prox(5)> DISTANCE){
+				set_rgb_led(LED4, 80, 0, 80);
+				newState = OBSTACLE;
+			}// Si l'arrivée est détectée : passer à arrivé
+		   else if(get_line_width() >= MAX_LINE_WIDTH){
 				newState = ARRIVE;
 				chprintf((BaseSequentialStream *) &SD3, "from SUIVRE_CSHEMIN to ARRIVE\n\r");
 			}
@@ -186,6 +161,11 @@ void actualize_state(void){
 			break;
 		case OBSTACLE:
 			//si obstacle toujours la : rester
+			   if(get_prox(4)> DISTANCE || get_prox(5)> DISTANCE){
+					newState = actualState;
+				}else {
+					newState = SUIVRE_CHEMIN;
+				}
 			// sinon passer à suivre chemin
 			chprintf((BaseSequentialStream *) &SD3, "from OBSTACLE to SUIVRE_CHEMIN\n\r");
 			break;
@@ -199,6 +179,7 @@ void actualize_state(void){
 			//Il faut bouger le selecteur pour arrêter d'être en mode arrivé
 			if(get_selector()!=colorToFollow){
 				newState = ATTENTE_COULEUR;
+				stopCurrentMelody();
 				chprintf((BaseSequentialStream *) &SD3, "from ARRIVE to ATTENTE_COULEUR\n\r");
 			}else{
 			newState = actualState;
@@ -315,6 +296,7 @@ static THD_FUNCTION(Adventure, arg) {
 
 				break;
 			case OBSTACLE:
+				set_rgb_led(LED6, 80, 80, 0);
 				right_motor_set_speed(MOTOR_SPEED_STOP);
 				left_motor_set_speed(MOTOR_SPEED_STOP);
 				//si obsatacle toujours la : rester
@@ -336,7 +318,7 @@ static THD_FUNCTION(Adventure, arg) {
 				right_motor_set_speed(MOTOR_SPEED_STOP);
 				left_motor_set_speed(MOTOR_SPEED_STOP);
 				chprintf((BaseSequentialStream *) &SD3, "ARRIVE\n\r");
-
+				playMelody(SANDSTORMS, ML_SIMPLE_PLAY, NULL);
 
 				break;
 			case ERREUR:
@@ -354,6 +336,7 @@ static THD_FUNCTION(Adventure, arg) {
          chThdSleepUntilWindowed(time, time + MS2ST(30));
      }
 }
+
 
 
 uint8_t get_colorToFollow(void){
