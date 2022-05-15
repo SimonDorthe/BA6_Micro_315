@@ -24,13 +24,7 @@ messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
 
-/*void SendUint8ToComputer(uint8_t* data, uint16_t size)
-{
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
-}
-*/
+//démarrage de la com Serial
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
@@ -46,6 +40,7 @@ static void serial_start(void)
 int main(void)
 {
 
+	//init RTOS and systems
     halInit();
     chSysInit();
     mpu_init();
@@ -74,10 +69,10 @@ int main(void)
     set_rgb_led(LED6, 0, 0, 0);
     set_rgb_led(LED8, 0, 0, 0);
 
-    chprintf((BaseSequentialStream *) &SD3, "adventure Start\n \r");
+    chprintf((BaseSequentialStream *) &SD3, "adventure Start\n \r");//indication que l'initialisation est fini
+    //stars the threads for the adventure mode
 	adventure_start();
-	//stars the threads for the pi regulator and the processing of the image
-	//pi_regulator_start();
+	//stars the threads for the processing of the image
 	process_image_start();
 
     /* Infinite loop. */

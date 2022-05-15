@@ -27,16 +27,7 @@ extern "C" {
 #define KI 						3.5f	//must not be zero
 #define MAX_SUM_ERROR 			(MOTOR_SPEED_LIMIT/KI)
 
-//constants for the lEDS
 
-/*
-#define LED1		GPIOD, 5
-#define LED3     	GPIOD, 6
-#define LED5     	GPIOD, 10
-#define LED7     	GPIOD, 11
-#define FRONT_LED	GPIOD, 14
-#define BODY_LED	GPIOB, 2
-*/
 
 //constants for the motors
 #define POSITION_NOT_REACHED	0
